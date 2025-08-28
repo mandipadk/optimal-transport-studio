@@ -1,5 +1,6 @@
 export async function hasWebGPU(): Promise<boolean> {
-  return !!navigator.gpu;
+  // Guard for non-browser/test environments
+  return typeof navigator !== "undefined" && !!(navigator as any).gpu;
 }
 
 export type GPUKernels = {

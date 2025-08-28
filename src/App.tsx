@@ -193,9 +193,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="header row">
-        <div style={{ fontWeight: 600 }}>
-          Optimal‑Transport Studio — Extended
-        </div>
+        <div style={{ fontWeight: 600 }}>Optimal‑Transport Studio</div>
         <div className="badge">
           Multi‑target blend • Plan heatmap • WebGPU • Draw
         </div>

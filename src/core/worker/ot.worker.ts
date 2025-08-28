@@ -151,12 +151,13 @@ function sinkhornBarycentricLinear(
 }
 
 // log-domain utilities
-function logsumexp(arr: Float64Array): number {
+function logsumexp(arr: Float64Array, len?: number): number {
+  const actualLen = len ?? arr.length;
   let m = -Infinity;
-  for (let i = 0; i < arr.length; i++) if (arr[i] > m) m = arr[i];
+  for (let i = 0; i < actualLen; i++) if (arr[i] > m) m = arr[i];
   if (!isFinite(m)) return -Infinity;
   let s = 0.0;
-  for (let i = 0; i < arr.length; i++) s += Math.exp(arr[i] - m);
+  for (let i = 0; i < actualLen; i++) s += Math.exp(arr[i] - m);
   return m + Math.log(s);
 }
 
@@ -186,32 +187,40 @@ function sinkhornBarycentricLog(req: SolveReq, post: (m: WorkerResp) => void) {
   g.fill(0.0);
   let err = Infinity,
     iter = 0;
-  const tmp = new Float64Array(M);
+  const tmp = new Float64Array(Math.max(N, M));
   for (iter = 0; iter < maxIter; iter++) {
+    let maxErr = 0.0;
     // update f
     for (let i = 0; i < N; i++) {
       for (let j = 0; j < M; j++)
         tmp[j] = (g[j] - C[i * M + j]) / Math.max(1e-12, epsilon) + logb[j];
-      const lse = logsumexp(tmp);
+      const lse = logsumexp(tmp, M);
       const newf = loga[i] - lse;
-      err = Math.max(Math.abs(newf - f[i]), err);
-      f[i] = newf;
+      if (isFinite(newf)) {
+        maxErr = Math.max(maxErr, Math.abs(newf - f[i]));
+        f[i] = newf;
+      }
     }
     // update g
     for (let j = 0; j < M; j++) {
       for (let i = 0; i < N; i++)
         tmp[i] = (f[i] - C[i * M + j]) / Math.max(1e-12, epsilon) + loga[i];
-      const lse = logsumexp(tmp);
+      const lse = logsumexp(tmp, N);
       const newg = logb[j] - lse;
-      err = Math.max(Math.abs(newg - g[j]), err);
-      g[j] = newg;
+      if (isFinite(newg)) {
+        maxErr = Math.max(maxErr, Math.abs(newg - g[j]));
+        g[j] = newg;
+      }
     }
+    err = maxErr;
     if (iter % 5 === 0) post({ kind: "progress", err });
     if (err < tol) break;
   }
   // derive v from g: v_j ~ exp(g_j) (up to scaling); but for barycentric map we need K*v rowwise sums
   const v = new Float64Array(M);
-  for (let j = 0; j < M; j++) v[j] = Math.exp(g[j]);
+  for (let j = 0; j < M; j++) {
+    v[j] = isFinite(g[j]) ? Math.exp(g[j]) : 1e-10;
+  }
   // barycentric map using K_ij*v_j with K from exp(-C/eps)
   const T = new Float32Array(N * 2);
   for (let i = 0; i < N; i++) {
@@ -221,9 +230,11 @@ function sinkhornBarycentricLog(req: SolveReq, post: (m: WorkerResp) => void) {
     for (let j = 0; j < M; j++) {
       const kij = Math.exp(-C[i * M + j] / Math.max(1e-12, epsilon));
       const w = kij * v[j];
-      den += w;
-      sx += w * Y[2 * j];
-      sy += w * Y[2 * j + 1];
+      if (isFinite(w)) {
+        den += w;
+        sx += w * Y[2 * j];
+        sy += w * Y[2 * j + 1];
+      }
     }
     if (den <= 1e-30) {
       T[2 * i] = X[2 * i];
@@ -285,8 +296,9 @@ function sinkhornBlend(
 
   if (schedule && schedule.steps > 0) {
     const { start, end, steps } = schedule;
+    const denom = steps > 1 ? steps - 1 : 1; // avoid divide-by-zero when steps===1
     for (let s = 0; s < steps; s++) {
-      const eps = start + (end - start) * (s / (steps - 1));
+      const eps = start + (end - start) * (s / denom);
       // sequential over targets per stage
       let blend = new Float32Array(X.length);
       blend.fill(0);
@@ -310,25 +322,39 @@ function sinkhornBlend(
   return { T, iter: itTot, err: errLast };
 }
 
-self.onmessage = (ev: MessageEvent<SolveReq>) => {
-  const req = ev.data;
-  let out;
-  try {
-    if (req.mode === "solve")
-      out = sinkhornBarycentricLinear(req, (m) => (self as any).postMessage(m));
-    else if (req.mode === "solveLog")
-      out = sinkhornBarycentricLog(req, (m) => (self as any).postMessage(m));
-    else if (req.mode === "solveBlend")
-      out = sinkhornBlend(req, (m) => (self as any).postMessage(m), false);
-    else if (req.mode === "solveLogBlend")
-      out = sinkhornBlend(req, (m) => (self as any).postMessage(m), true);
-    (self as any).postMessage({ kind: "done", ...out } as WorkerResp);
-  } catch (e: any) {
-    (self as any).postMessage({
-      kind: "done",
-      T: new Float32Array(req.X.length),
-      iter: 0,
-      err: 1e9,
-    } as WorkerResp);
-  }
+// Only attach handler when running in a real Worker context (e.g., browser). This
+// prevents test/node environments from erroring on missing `self`.
+if (typeof self !== "undefined" && (self as any).postMessage) {
+  (self as any).onmessage = (ev: MessageEvent<SolveReq>) => {
+    const req = ev.data;
+    let out;
+    try {
+      if (req.mode === "solve")
+        out = sinkhornBarycentricLinear(req, (m) =>
+          (self as any).postMessage(m)
+        );
+      else if (req.mode === "solveLog")
+        out = sinkhornBarycentricLog(req, (m) => (self as any).postMessage(m));
+      else if (req.mode === "solveBlend")
+        out = sinkhornBlend(req, (m) => (self as any).postMessage(m), false);
+      else if (req.mode === "solveLogBlend")
+        out = sinkhornBlend(req, (m) => (self as any).postMessage(m), true);
+      (self as any).postMessage({ kind: "done", ...out } as WorkerResp);
+    } catch (e: any) {
+      (self as any).postMessage({
+        kind: "done",
+        T: new Float32Array(req.X.length),
+        iter: 0,
+        err: 1e9,
+      } as WorkerResp);
+    }
+  };
+}
+
+// Expose internals for unit tests (doesn't change anything in production builds)
+export {
+  computeCost as _computeCost,
+  sinkhornBarycentricLinear as _sinkhornLinear,
+  sinkhornBarycentricLog as _sinkhornLog,
+  sinkhornBlend as _sinkhornBlend,
 };
