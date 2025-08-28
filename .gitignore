@@ -24,3 +24,9 @@ coverage
 out
 # Nuxt.js build / generate output
 .nuxt
+# IDE and Plaform files
+.idea
+.vscode
+*.suo
+*.ntvs*
+.DS_Store
