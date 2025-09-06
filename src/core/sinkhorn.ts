@@ -31,7 +31,8 @@ export async function sinkhornWorkerSolve(
   right: { X: Float32Array; w: Float32Array },
   params: SinkhornParams,
   onProgress?: (err: number) => void,
-  useLog: boolean = false
+  useLog: boolean = false,
+  schedule?: { start: number; end: number; steps: number } | null
 ): Promise<SinkhornResult> {
   const worker = new Worker(new URL("./worker/ot.worker.ts", import.meta.url), {
     type: "module",
@@ -47,6 +48,7 @@ export async function sinkhornWorkerSolve(
     tol: params.tol,
     computePlan: !!params.computePlan,
     planMaxCells: params.planMaxCells ?? 65536,
+    schedule: schedule || null,
   };
   return new Promise((resolve, reject) => {
     worker.onmessage = (ev: MessageEvent<WorkerMsg>) => {
@@ -69,12 +71,9 @@ export async function sinkhornWorkerSolve(
       worker.terminate();
       reject(e);
     };
-    worker.postMessage(req, [
-      req.X.buffer,
-      req.Y.buffer,
-      req.a.buffer,
-      req.b.buffer,
-    ]);
+    // Do not transfer buffers that the UI still needs (detaches them in main thread).
+    // Structured clone is fine for these sizes and keeps source arrays intact for rendering.
+    worker.postMessage(req);
   });
 }
 
@@ -118,8 +117,8 @@ export async function sinkhornWorkerBlend(
       worker.terminate();
       reject(e);
     };
-    // Transfer only left.X and a; Ys arrays may be large—avoid transferring ownership for safety
-    worker.postMessage(req, [left.X.buffer, left.w.buffer]);
+    // Do not transfer buffers that are needed by the UI after the call; cloning avoids detaching.
+    worker.postMessage(req);
   });
 }
 

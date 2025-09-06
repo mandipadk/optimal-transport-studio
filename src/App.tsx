@@ -72,13 +72,33 @@ export default function App() {
     setHist([]);
     setPlan(null);
     setPlanShape(null);
+    // prepare animation state
+    setAnim(false);
+    setT(0);
     const norm = targets.reduce((s, t) => s + t.weight, 0) || 1;
     const tgts = targets.map((t) => ({
       X: t.pts.X,
       w: t.pts.w,
       weight: t.weight / norm,
     }));
-    if (tgts.length >= 1) {
+    // If there's exactly one target and plan heatmap is requested, use single-target solver
+    if (tgts.length === 1 && computePlan) {
+      const right = { X: tgts[0].X, w: tgts[0].w };
+      const res = await sinkhornWorkerSolve(
+        left,
+        right,
+        { epsilon, maxIter, tol, computePlan, planMaxCells: 65536 },
+        (err) => setHist((prev) => [...prev, err]),
+        useLog,
+        scheduleOn ? schedule : null
+      );
+      setResult(res);
+      setRun("solved");
+      setPlan(res.P ?? null);
+      setPlanShape(res.N && res.M ? [res.N, res.M] : null);
+      setAnim(true); // auto-animate after completion
+    } else {
+      // Blend path for 1+ targets (no plan available here)
       const res = await sinkhornWorkerBlend(
         left,
         tgts,
@@ -89,19 +109,7 @@ export default function App() {
       );
       setResult(res);
       setRun("solved");
-      // plan not available in blend path
-    } else {
-      const res = await sinkhornWorkerSolve(
-        left,
-        { X: new Float32Array(), w: new Float32Array() } as any,
-        { epsilon, maxIter, tol, computePlan, planMaxCells: 65536 },
-        (err) => setHist((prev) => [...prev, err]),
-        useLog
-      );
-      setResult(res);
-      setRun("solved");
-      setPlan(res.P ?? null);
-      setPlanShape(res.N && res.M ? [res.N, res.M] : null);
+      setAnim(true); // auto-animate after completion
     }
   };
 

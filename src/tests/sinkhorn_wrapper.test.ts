@@ -65,8 +65,8 @@ describe('sinkhorn wrapper', () => {
     expect(res.P).toBeTruthy()
     expect(res.N).toBe(2)
     expect(res.M).toBe(2)
-    // verify transferables used
-    expect(MockWorker.lastTransfer?.length).toBe(4)
+    // no transfer list is used now to avoid detaching source buffers in UI
+    expect(MockWorker.lastTransfer == null || MockWorker.lastTransfer.length === 0).toBe(true)
   })
 
   it('sinkhornWorkerBlend forwards done and supports schedule', async () => {
@@ -82,4 +82,3 @@ describe('sinkhorn wrapper', () => {
     expect(res.T.length).toBe(left.X.length)
   })
 })
-

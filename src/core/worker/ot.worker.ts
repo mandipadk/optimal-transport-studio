@@ -181,8 +181,9 @@ function sinkhornBarycentricLog(req: SolveReq, post: (m: WorkerResp) => void) {
   const logb = new Float64Array(M);
   for (let i = 0; i < N; i++) loga[i] = Math.log(Math.max(1e-300, a[i]));
   for (let j = 0; j < M; j++) logb[j] = Math.log(Math.max(1e-300, b[j]));
+  // f = log u, g = log v
   let f = new Float64Array(N);
-  f.fill(0.0); // dual potentials
+  f.fill(0.0);
   let g = new Float64Array(M);
   g.fill(0.0);
   let err = Infinity,
@@ -190,10 +191,10 @@ function sinkhornBarycentricLog(req: SolveReq, post: (m: WorkerResp) => void) {
   const tmp = new Float64Array(Math.max(N, M));
   for (iter = 0; iter < maxIter; iter++) {
     let maxErr = 0.0;
-    // update f
+    // update f: f_i = log a_i - logsumexp_j ( g_j - C_ij/eps )
+    const eps = Math.max(1e-12, epsilon);
     for (let i = 0; i < N; i++) {
-      for (let j = 0; j < M; j++)
-        tmp[j] = (g[j] - C[i * M + j]) / Math.max(1e-12, epsilon) + logb[j];
+      for (let j = 0; j < M; j++) tmp[j] = g[j] - C[i * M + j] / eps;
       const lse = logsumexp(tmp, M);
       const newf = loga[i] - lse;
       if (isFinite(newf)) {
@@ -201,10 +202,9 @@ function sinkhornBarycentricLog(req: SolveReq, post: (m: WorkerResp) => void) {
         f[i] = newf;
       }
     }
-    // update g
+    // update g: g_j = log b_j - logsumexp_i ( f_i - C_ij/eps )
     for (let j = 0; j < M; j++) {
-      for (let i = 0; i < N; i++)
-        tmp[i] = (f[i] - C[i * M + j]) / Math.max(1e-12, epsilon) + loga[i];
+      for (let i = 0; i < N; i++) tmp[i] = f[i] - C[i * M + j] / eps;
       const lse = logsumexp(tmp, N);
       const newg = logb[j] - lse;
       if (isFinite(newg)) {
@@ -218,9 +218,7 @@ function sinkhornBarycentricLog(req: SolveReq, post: (m: WorkerResp) => void) {
   }
   // derive v from g: v_j ~ exp(g_j) (up to scaling); but for barycentric map we need K*v rowwise sums
   const v = new Float64Array(M);
-  for (let j = 0; j < M; j++) {
-    v[j] = isFinite(g[j]) ? Math.exp(g[j]) : 1e-10;
-  }
+  for (let j = 0; j < M; j++) v[j] = isFinite(g[j]) ? Math.exp(g[j]) : 1e-10;
   // barycentric map using K_ij*v_j with K from exp(-C/eps)
   const T = new Float32Array(N * 2);
   for (let i = 0; i < N; i++) {
@@ -257,6 +255,42 @@ function sinkhornBarycentricLog(req: SolveReq, post: (m: WorkerResp) => void) {
     }
   }
   return { T, iter: iter + 1, err, P, N, M };
+}
+
+// Single-target solve with optional epsilon schedule.
+function sinkhornSolve(
+  req: SolveReq,
+  post: (m: WorkerResp) => void,
+  useLog: boolean
+): { T: Float32Array; iter: number; err: number; P?: Float32Array | null; N?: number; M?: number } {
+  const { schedule } = req;
+  if (!schedule || schedule.steps <= 0) {
+    return useLog ? sinkhornBarycentricLog(req, post) : sinkhornBarycentricLinear(req, post);
+  }
+  const { start, end, steps } = schedule;
+  const denom = steps > 1 ? steps - 1 : 1;
+  let out: { T: Float32Array; iter: number; err: number; P?: Float32Array | null; N?: number; M?: number } | null = null;
+  let itTot = 0;
+  let lastErr = Infinity;
+  for (let s = 0; s < steps; s++) {
+    const eps = start + (end - start) * (s / denom);
+    // Only compute plan on the final stage to save memory/time
+    const stageReq: SolveReq = {
+      ...req,
+      epsilon: eps,
+      computePlan: s === steps - 1 ? req.computePlan : false,
+    };
+    const r = useLog
+      ? sinkhornBarycentricLog(stageReq, post)
+      : sinkhornBarycentricLinear(stageReq, post);
+    itTot += r.iter;
+    lastErr = r.err;
+    out = r;
+    // Emit a progress heartbeat at end of each stage
+    post({ kind: "progress", err: Math.max(1e-12, lastErr) });
+  }
+  // out is set since steps > 0
+  return { ...(out as any), iter: itTot, err: lastErr };
 }
 
 // Blend multiple targets: compute T_k per target, then T = sum_k w_k T_k (weights normalized)
@@ -330,11 +364,9 @@ if (typeof self !== "undefined" && (self as any).postMessage) {
     let out;
     try {
       if (req.mode === "solve")
-        out = sinkhornBarycentricLinear(req, (m) =>
-          (self as any).postMessage(m)
-        );
+        out = sinkhornSolve(req, (m) => (self as any).postMessage(m), false);
       else if (req.mode === "solveLog")
-        out = sinkhornBarycentricLog(req, (m) => (self as any).postMessage(m));
+        out = sinkhornSolve(req, (m) => (self as any).postMessage(m), true);
       else if (req.mode === "solveBlend")
         out = sinkhornBlend(req, (m) => (self as any).postMessage(m), false);
       else if (req.mode === "solveLogBlend")
@@ -356,5 +388,6 @@ export {
   computeCost as _computeCost,
   sinkhornBarycentricLinear as _sinkhornLinear,
   sinkhornBarycentricLog as _sinkhornLog,
+  sinkhornSolve as _sinkhornSolve,
   sinkhornBlend as _sinkhornBlend,
 };
