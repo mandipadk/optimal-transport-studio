@@ -59,8 +59,8 @@ where $C_{ij}$ is the cost matrix (squared Euclidean distances), $\Pi(a,b)$ are 
 **Sinkhorn Iterations:**
 The algorithm alternates between updating dual variables:
 
-1. $u^{(k+1)}_i = \frac{a_i}{\sum_j K_{ij} v^{(k)}_j}$ (row scaling)
-2. $v^{(k+1)}_j = \frac{b_j}{\sum_i K_{ij} u^{(k+1)}_i}$ (column scaling)
+1. Variable 1: $$u^{(k+1)}_i = \frac{a_i}{\sum_j K_{ij} v^{(k)}_j}$$ (row scaling)
+2. Variable 2: $$v^{(k+1)}_j = \frac{b_j}{\sum_i K_{ij} u^{(k+1)}_i}$$ (column scaling)
 
 where $K_{ij} = \exp(-C_{ij}/\epsilon)$ is the Gibbs kernel.
 
@@ -73,8 +73,11 @@ This gives us the transported location for each source point $X_i$.
 **Log-Domain Stability:**
 For small $\epsilon$, we work in log-space with potentials $f = \epsilon \log u$ and $g = \epsilon \log v$:
 
-- $f_i^{(k+1)} = \log a_i - \text{LSE}_j(g_j^{(k)} - C_{ij})/\epsilon + \log b_j)$
-- $g_j^{(k+1)} = \log b_j - \text{LSE}_i(f_i^{(k+1)} - C_{ij})/\epsilon + \log a_i)$
+$$f_i^{(k+1)} = \log a_i - \text{LSE}_j(g_j^{(k)} - C_{ij})/\epsilon + \log b_j)$$
+
+And, 
+
+$$g_j^{(k+1)} = \log b_j - \text{LSE}_i(f_i^{(k+1)} - C_{ij})/\epsilon + \log a_i)$$
 
 where LSE is the log-sum-exp operation for numerical stability.
 
