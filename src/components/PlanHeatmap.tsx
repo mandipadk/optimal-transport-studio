@@ -128,24 +128,24 @@ export function PlanHeatmap({
             : "Plan heatmap: values scaled to global max; cividis-like colormap"
         }
       />
-      <div className="mt-4 flex items-center space-x-2">
-        <label className="flex items-center space-x-2">
+      <div className="mt-4 space-y-3">
+        <label className="flex items-center space-x-2 cursor-pointer">
           <input
             type="checkbox"
-            className="rounded border-gray-600"
+            className="studio-checkbox"
             checked={robust}
             onChange={(e) => setRobust(e.target.checked)}
           />
-          <span className="studio-text-caption">
+          <span className="studio-text-body">
             Robust contrast (99th percentile)
           </span>
         </label>
-      </div>
-      <div className="small">
-        Colormap: cividis‑like. Colorbar shows low → high mass.{" "}
-        {robust
-          ? "Clipped to 99th percentile for contrast."
-          : "Scaled to global maximum."}
+        <div className="studio-text-caption text-center">
+          Colormap: cividis‑like. Colorbar shows low → high mass.{" "}
+          {robust
+            ? "Clipped to 99th percentile for contrast."
+            : "Scaled to global maximum."}
+        </div>
       </div>
     </div>
   );

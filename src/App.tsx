@@ -385,11 +385,11 @@ export default function App() {
             {scheduleOn && (
               <div className="studio-form-group">
                 <label className="studio-form-label">ε Schedule</label>
-                <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="space-y-2">
                   <div>
                     <span className="studio-text-caption">Start</span>
                     <input
-                      className="studio-input"
+                      className="studio-input w-full"
                       type="number"
                       step="0.01"
                       value={schedule.start}
@@ -404,7 +404,7 @@ export default function App() {
                   <div>
                     <span className="studio-text-caption">End</span>
                     <input
-                      className="studio-input"
+                      className="studio-input w-full"
                       type="number"
                       step="0.01"
                       value={schedule.end}
@@ -419,7 +419,7 @@ export default function App() {
                   <div>
                     <span className="studio-text-caption">Steps</span>
                     <input
-                      className="studio-input"
+                      className="studio-input w-full"
                       type="number"
                       value={schedule.steps}
                       onChange={(e) =>
@@ -602,7 +602,7 @@ export default function App() {
                 {run === "solving" ? "Solving" : result ? "Solved" : "Ready"}
               </div>
             </div>
-            <div className="studio-kpi-grid w-full max-w-lg">
+            <div className="studio-kpi-grid w-full">
               <div className="studio-kpi-card">
                 <span className="studio-kpi-value">{epsilon.toFixed(3)}</span>
                 <div className="studio-kpi-label">ε</div>

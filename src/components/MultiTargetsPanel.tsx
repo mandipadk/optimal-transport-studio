@@ -40,7 +40,12 @@ export function MultiTargetsPanel({
       <div className="studio-target-tabs">
         {targets.map((t, idx) => (
           <div key={t.id} className="studio-target-tab active">
-            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+            <div
+              className="w-2 h-2 rounded-full"
+              style={{
+                backgroundColor: idx % 2 === 0 ? '#10b981' : '#3b82f6' // green/blue alternating
+              }}
+            ></div>
             T{idx + 1}
             <button onClick={() => rem(t.id)}>
               <i data-lucide="x" className="w-3 h-3"></i>

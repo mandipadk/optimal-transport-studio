@@ -186,6 +186,17 @@
   box-shadow: 0 0 0 3px oklch(0.6500 0.2400 195 / 0.1);
 }
 
+/* Modern Number Input Styling */
+.studio-input[type="number"] {
+  -moz-appearance: textfield !important;
+}
+
+.studio-input[type="number"]::-webkit-outer-spin-button,
+.studio-input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
 .studio-card {
   background: var(--studio-surface);
   border: 1px solid var(--studio-border);
@@ -259,6 +270,39 @@
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid var(--studio-text-primary);
+}
+
+/* Checkbox Styling */
+.studio-checkbox {
+  appearance: none !important;
+  width: 18px !important;
+  height: 18px !important;
+  border: 2px solid var(--studio-border) !important;
+  border-radius: var(--studio-radius-sm) !important;
+  background: var(--studio-surface) !important;
+  cursor: pointer !important;
+  transition: all var(--studio-transition-fast) !important;
+  position: relative !important;
+}
+
+.studio-checkbox:checked {
+  background: var(--studio-primary) !important;
+  border-color: var(--studio-primary) !important;
+}
+
+.studio-checkbox:checked::after {
+  content: '✓' !important;
+  position: absolute !important;
+  top: -2px !important;
+  left: 2px !important;
+  color: white !important;
+  font-size: 12px !important;
+  font-weight: bold !important;
+}
+
+.studio-checkbox:hover {
+  border-color: var(--studio-primary) !important;
+  transform: scale(1.05) !important;
 }
 
 /* Animation Classes */
@@ -540,9 +584,8 @@ body {
   border-radius: var(--studio-radius-md) !important;
   font-size: 0.75rem !important;
   font-weight: 500 !important;
-  color: var(--studio-text-secondary) !important;
+  color: var(--studio-text-primary) !important;
   cursor: pointer !important;
-  transition: all var(--studio-transition-fast) !important;
   display: flex !important;
   align-items: center !important;
   gap: var(--studio-space-xs) !important;
@@ -554,15 +597,34 @@ body {
 }
 
 .studio-target-tab.active {
-  background: var(--studio-primary-muted) !important;
-  border-color: var(--studio-primary) !important;
-  color: var(--studio-primary) !important;
+  background: oklch(0.2000 0.0160 240) !important;
+  border-color: var(--studio-text-secondary) !important;
+  color: var(--studio-text-primary) !important;
+}
+
+.studio-target-tab button {
+  background: transparent !important;
+  border: none !important;
+  color: var(--studio-text-secondary) !important;
+  cursor: pointer !important;
+  padding: 2px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.studio-target-tab button:hover {
+  background: var(--studio-error) !important;
+  color: white !important;
 }
 
 .studio-kpi-grid {
   display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)) !important;
-  gap: var(--studio-space-md) !important;
+  grid-template-columns: repeat(6, 1fr) !important;
+  gap: var(--studio-space-sm) !important;
 }
 
 .studio-kpi-card {
