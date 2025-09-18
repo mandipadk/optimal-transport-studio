@@ -3,19 +3,22 @@ import React, { useEffect, useRef } from "react";
 export function ConvergencePlot({ history }: { history: number[] }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
-    const W = 320,
-      H = 140,
+    const W = 280,
+      H = 120,
       dpr = Math.min(2, window.devicePixelRatio || 1);
     const cvs = ref.current!;
     cvs.width = W * dpr;
     cvs.height = H * dpr;
     cvs.style.width = W + "px";
     cvs.style.height = H + "px";
+    cvs.style.display = "block";
+    cvs.style.margin = "0 auto";
+    cvs.style.borderRadius = "0.5rem";
     const ctx = cvs.getContext("2d")!;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = "#0b0e14";
+    ctx.fillStyle = "oklch(0.0800 0.0040 240)"; // var(--studio-bg)
     ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = "#1f2937";
+    ctx.strokeStyle = "oklch(0.2000 0.0160 240)"; // var(--studio-border)
     ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
     if (history.length === 0) {
       ctx.fillStyle = "#9ca3af";

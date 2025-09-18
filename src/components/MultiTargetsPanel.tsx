@@ -29,73 +29,86 @@ export function MultiTargetsPanel({
   };
   const totalW = targets.reduce((s, t) => s + t.weight, 0) || 1;
   return (
-    <div className="card">
-      <h4>Targets (blend 3+)</h4>
-      <div className="list">
+    <div>
+      <div className="studio-section-header">
+        <h3 className="studio-text-heading">Targets</h3>
+        <button className="studio-icon-button" onClick={add}>
+          <i data-lucide="plus" className="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div className="studio-target-tabs">
         {targets.map((t, idx) => (
-          <div key={t.id} className="card">
-            <div className="row">
-              <strong>Target {idx + 1}</strong>
-              <button className="btn" onClick={() => rem(t.id)}>
-                Remove
-              </button>
-              <label className="btn">
-                Load Image
-                <input
-                  type="file"
-                  accept="image/*"
-                  style={{ display: "none" }}
-                  onChange={(e) =>
-                    e.target.files && loadImg(t.id, e.target.files[0])
-                  }
-                />
-              </label>
-              <button
-                className="btn"
-                onClick={() => {
-                  const n = 200;
-                  setTargets(
-                    targets.map((x) =>
-                      x.id === t.id
-                        ? {
-                            ...x,
-                            pts: randomPointCloud(
-                              n,
-                              Math.floor(Math.random() * 1e6)
-                            ),
-                          }
-                        : x
-                    )
-                  );
-                }}
-              >
-                Random
-              </button>
-            </div>
-            <div className="slider">
-              <input
-                className="range"
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={t.weight}
-                onChange={(e) => updateWeight(t.id, parseFloat(e.target.value))}
-              />
-              <span className="badge">{(t.weight / totalW).toFixed(2)}</span>
-            </div>
-            <div className="small">
-              Normalized weight = {(t.weight / totalW).toFixed(3)}
-            </div>
+          <div key={t.id} className="studio-target-tab active">
+            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+            T{idx + 1}
+            <button onClick={() => rem(t.id)}>
+              <i data-lucide="x" className="w-3 h-3"></i>
+            </button>
           </div>
         ))}
       </div>
-      <div className="row">
-        <button className="btn" onClick={add}>
-          Add Target
-        </button>
-      </div>
-      <div className="small">
+
+      {targets.map((t, idx) => (
+        <div key={t.id} className="mb-4">
+          <div className="flex gap-2 mb-2">
+            <button
+              className="studio-button studio-button--secondary flex-1"
+              onClick={() => {
+                const n = 200;
+                setTargets(
+                  targets.map((x) =>
+                    x.id === t.id
+                      ? {
+                          ...x,
+                          pts: randomPointCloud(
+                            n,
+                            Math.floor(Math.random() * 1e6)
+                          ),
+                        }
+                      : x
+                  )
+                );
+              }}
+            >
+              <i data-lucide="shuffle" className="w-3 h-3"></i>
+              Random
+            </button>
+            <label className="studio-button studio-button--secondary flex-1">
+              <i data-lucide="image" className="w-3 h-3"></i>
+              Image
+              <input
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={(e) =>
+                  e.target.files && loadImg(t.id, e.target.files[0])
+                }
+              />
+            </label>
+          </div>
+
+          <div className="studio-form-group">
+            <label className="studio-form-label">Weight</label>
+            <input
+              className="studio-range w-full"
+              type="range"
+              min="0"
+              max="2"
+              step="0.1"
+              value={t.weight}
+              onChange={(e) => updateWeight(t.id, parseFloat(e.target.value))}
+            />
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>0.0</span>
+              <span className="studio-text-mono">{t.weight.toFixed(1)}</span>
+              <span>2.0</span>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      <div className="studio-text-caption">
         Weights are normalized automatically when blending maps.
       </div>
     </div>

@@ -51,6 +51,11 @@ export default function App() {
     hasWebGPU()
       .then(setGpuOK)
       .catch(() => setGpuOK(false));
+
+    // Initialize Lucide icons
+    if (typeof (window as any).lucide !== 'undefined') {
+      (window as any).lucide.createIcons();
+    }
   }, []);
 
   useEffect(() => {
@@ -143,6 +148,16 @@ export default function App() {
     return () => cancelAnimationFrame(raf);
   }, [result, anim]);
 
+  // Initialize Lucide icons on component updates
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (typeof (window as any).lucide !== 'undefined') {
+        (window as any).lucide.createIcons();
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  });
+
   const onLoadLeft = async (f: File) => {
     const arr = await f.arrayBuffer();
     const url = URL.createObjectURL(new Blob([arr]));
@@ -199,40 +214,57 @@ export default function App() {
   };
 
   return (
-    <div className="app">
-      <header className="header row">
-        <div style={{ fontWeight: 600 }}>Optimal‑Transport Studio</div>
-        <div className="badge">
-          Multi‑target blend • Plan heatmap • WebGPU • Draw
+    <div className="studio-layout">
+      {/* Header */}
+      <header className="studio-header">
+        <div className="studio-logo">
+          <i data-lucide="target" className="w-6 h-6" style={{ color: 'var(--studio-primary)' }}></i>
+          Optimal Transport Studio
         </div>
-        <div style={{ flex: 1 }} />
-        <button className="btn" onClick={share}>
-          Share
-        </button>
-        <a
-          className="btn"
-          href="https://en.wikipedia.org/wiki/Optimal_transport"
-          target="_blank"
-        >
-          What is OT?
-        </a>
+
+        <div className="studio-toolbar">
+          <div className="studio-badge studio-badge--primary">
+            <i data-lucide="zap" className="w-3 h-3"></i>
+            WebGPU
+          </div>
+          <button className="studio-button studio-button--ghost" onClick={share}>
+            <i data-lucide="share-2" className="w-4 h-4"></i>
+            Share
+          </button>
+          <a
+            className="studio-button studio-button--ghost"
+            href="https://en.wikipedia.org/wiki/Optimal_transport"
+            target="_blank"
+          >
+            <i data-lucide="help-circle" className="w-4 h-4"></i>
+            Help
+          </a>
+          <button className="studio-button studio-button--ghost">
+            <i data-lucide="settings" className="w-4 h-4"></i>
+          </button>
+        </div>
       </header>
 
-      <aside className="sidebar">
-        <div className="section">
-          <div className="row">
-            <strong>Source</strong>
+      {/* Sidebar */}
+      <aside className="studio-sidebar">
+        {/* Source Section */}
+        <div className="studio-section">
+          <div className="studio-section-header">
+            <h3 className="studio-text-heading">Source</h3>
           </div>
-          <div className="row">
+
+          <div className="space-y-3">
             <button
-              className="btn"
+              className="studio-button studio-button--secondary w-full"
               onClick={() =>
                 setLeft(randomPointCloud(220, Math.floor(Math.random() * 1e6)))
               }
             >
+              <i data-lucide="shuffle" className="w-4 h-4"></i>
               Random Source
             </button>
-            <label className="btn">
+            <label className="studio-button studio-button--secondary w-full">
+              <i data-lucide="image" className="w-4 h-4"></i>
               Load Image
               <input
                 type="file"
@@ -243,249 +275,400 @@ export default function App() {
                 }
               />
             </label>
+            <button className="studio-button studio-button--secondary w-full">
+              <i data-lucide="paintbrush" className="w-4 h-4"></i>
+              Draw Mode
+            </button>
           </div>
-          <DrawCanvas
-            onUse={async (url) =>
-              setLeft(await samplePointsFromImage(url, 220))
-            }
-          />
+
+          <div className="studio-card mt-4">
+            <div className="studio-text-caption mb-2">Canvas Preview</div>
+            <DrawCanvas
+              onUse={async (url) =>
+                setLeft(await samplePointsFromImage(url, 220))
+              }
+            />
+          </div>
         </div>
 
-        <div className="section">
+        {/* Targets Section */}
+        <div className="studio-section">
           <MultiTargetsPanel targets={targets} setTargets={setTargets} />
         </div>
 
-        <div className="section">
-          <div className="row">
-            <strong>Solver</strong>
+        {/* Solver Parameters */}
+        <div className="studio-section">
+          <div className="studio-section-header">
+            <h3 className="studio-text-heading">Solver</h3>
           </div>
-          <div className="row">
-            ε (entropy):{" "}
-            <input
-              className="range"
-              type="range"
-              min="0.01"
-              max="0.3"
-              step="0.005"
-              value={epsilon}
-              onChange={(e) => setEps(parseFloat(e.target.value))}
-            />{" "}
-            <span className="badge">{epsilon.toFixed(3)}</span>
-          </div>
-          <div className="row">
-            maxIter:{" "}
-            <input
-              className="input"
-              type="number"
-              value={maxIter}
-              onChange={(e) => setMaxIter(parseInt(e.target.value))}
-            />
-          </div>
-          <div className="row">
-            tol:{" "}
-            <input
-              className="input"
-              type="number"
-              value={tol}
-              step="1e-7"
-              onChange={(e) => setTol(parseFloat(e.target.value))}
-            />
-          </div>
-          <div className="row">
-            <label>
+
+          <div className="space-y-4">
+            <div className="studio-form-group">
+              <label className="studio-form-label">ε (entropy)</label>
               <input
-                type="checkbox"
-                checked={useLog}
-                onChange={(e) => setUseLog(e.target.checked)}
-              />{" "}
-              Log‑domain updates
-            </label>
-          </div>
-          <div className="row">
-            <label>
+                className="studio-range w-full"
+                type="range"
+                min="0.01"
+                max="0.3"
+                step="0.005"
+                value={epsilon}
+                onChange={(e) => setEps(parseFloat(e.target.value))}
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>0.01</span>
+                <span className="studio-text-mono">{epsilon.toFixed(3)}</span>
+                <span>0.30</span>
+              </div>
+            </div>
+
+            <div className="studio-form-group">
+              <label className="studio-form-label">Max Iterations</label>
               <input
-                type="checkbox"
-                checked={scheduleOn}
-                onChange={(e) => setScheduleOn(e.target.checked)}
-              />{" "}
-              Anneal ε
-            </label>
+                className="studio-input"
+                type="number"
+                value={maxIter}
+                onChange={(e) => setMaxIter(parseInt(e.target.value))}
+              />
+            </div>
+
+            <div className="studio-form-group">
+              <label className="studio-form-label">Tolerance</label>
+              <input
+                className="studio-input"
+                type="number"
+                value={tol}
+                step="1e-7"
+                onChange={(e) => setTol(parseFloat(e.target.value))}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  className="rounded border-gray-600"
+                  checked={useLog}
+                  onChange={(e) => setUseLog(e.target.checked)}
+                />
+                <span className="studio-text-body">Log‑domain updates</span>
+              </label>
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  className="rounded border-gray-600"
+                  checked={scheduleOn}
+                  onChange={(e) => setScheduleOn(e.target.checked)}
+                />
+                <span className="studio-text-body">Anneal ε</span>
+              </label>
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  className="rounded border-gray-600"
+                  checked={computePlan}
+                  onChange={(e) => setComputePlan(e.target.checked)}
+                />
+                <span className="studio-text-body">Plan heatmap</span>
+              </label>
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  className="rounded border-gray-600"
+                  checked={useGPU}
+                  disabled={!gpuOK}
+                  onChange={(e) => setUseGPU(e.target.checked)}
+                />
+                <span className="studio-text-body">Use WebGPU</span>
+              </label>
+              {gpuNote && <div className="studio-text-caption">{gpuNote}</div>}
+            </div>
+
             {scheduleOn && (
-              <>
-                <span>start</span>
-                <input
-                  className="input"
-                  type="number"
-                  step="0.01"
-                  value={schedule.start}
-                  onChange={(e) =>
-                    setSchedule({
-                      ...schedule,
-                      start: parseFloat(e.target.value),
-                    })
-                  }
-                />
-                <span>end</span>
-                <input
-                  className="input"
-                  type="number"
-                  step="0.01"
-                  value={schedule.end}
-                  onChange={(e) =>
-                    setSchedule({
-                      ...schedule,
-                      end: parseFloat(e.target.value),
-                    })
-                  }
-                />
-                <span>steps</span>
-                <input
-                  className="input"
-                  type="number"
-                  value={schedule.steps}
-                  onChange={(e) =>
-                    setSchedule({
-                      ...schedule,
-                      steps: parseInt(e.target.value),
-                    })
-                  }
-                />
-              </>
+              <div className="studio-form-group">
+                <label className="studio-form-label">ε Schedule</label>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div>
+                    <span className="studio-text-caption">Start</span>
+                    <input
+                      className="studio-input"
+                      type="number"
+                      step="0.01"
+                      value={schedule.start}
+                      onChange={(e) =>
+                        setSchedule({
+                          ...schedule,
+                          start: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <span className="studio-text-caption">End</span>
+                    <input
+                      className="studio-input"
+                      type="number"
+                      step="0.01"
+                      value={schedule.end}
+                      onChange={(e) =>
+                        setSchedule({
+                          ...schedule,
+                          end: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <span className="studio-text-caption">Steps</span>
+                    <input
+                      className="studio-input"
+                      type="number"
+                      value={schedule.steps}
+                      onChange={(e) =>
+                        setSchedule({
+                          ...schedule,
+                          steps: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
             )}
-          </div>
-          <div className="row">
-            <label>
-              <input
-                type="checkbox"
-                checked={computePlan}
-                onChange={(e) => setComputePlan(e.target.checked)}
-              />{" "}
-              Plan heatmap (small N)
-            </label>
-          </div>
-          <div className="row">
-            <label>
-              <input
-                type="checkbox"
-                checked={useGPU}
-                disabled={!gpuOK}
-                onChange={(e) => setUseGPU(e.target.checked)}
-              />{" "}
-              Use WebGPU (experimental)
-            </label>
-            {gpuNote}
-          </div>
-          <div className="row">
+
             <button
-              className="btn primary"
+              className="studio-button studio-button--primary w-full"
               disabled={run === "solving"}
               onClick={onSolve}
             >
-              Solve
+              <i data-lucide="play" className="w-4 h-4"></i>
+              {run === "solving" ? "Solving..." : "Solve"}
             </button>
-            <span className="small">
-              {run === "solving"
-                ? "Running…"
-                : result
-                ? `Dual err: ${(hist.at(-1) ?? 0).toExponential(2)}`
-                : ""}
-            </span>
-          </div>
-        </div>
 
-        <div className="section">
-          <Exporter renderFrame={renderFrame} />
-        </div>
-
-        <div className="section">
-          <div className="row">
-            <strong>Convergence</strong>
-          </div>
-          <ConvergencePlot history={hist} />
-        </div>
-      </aside>
-
-      <main className="content">
-        <div className="grid">
-          <div className="canvasWrap">
-            <PointCanvas
-              title="Source"
-              points={left.X}
-              weights={left.w}
-              color="#7dd3fc"
-            />
-            <div className="caption">Left distribution (N={left.w.length})</div>
-          </div>
-          <div className="canvasWrap">
-            <PointCanvas
-              title="Interpolated"
-              points={result ? interp ?? left.X : left.X}
-              weights={left.w}
-              color="#bbf7d0"
-            />
-            <div className="caption">
-              Displacement interpolation: (1−t)·X + t·T_blend(X)
-            </div>
-            <div className="row">
-              t:{" "}
-              <input
-                className="range"
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={t}
-                onChange={(e) => setT(parseFloat(e.target.value))}
-              />{" "}
-              <span className="badge">{t.toFixed(2)}</span>{" "}
-              <button
-                className="btn"
-                disabled={!result}
-                onClick={() => setAnim((a) => !a)}
-              >
-                {anim ? "Stop" : "Animate"}
-              </button>
-            </div>
-          </div>
-          <div className="canvasWrap">
-            {computePlan && plan && planShape ? (
-              <PlanHeatmap P={plan} N={planShape[0]} M={planShape[1]} />
-            ) : (
-              <div className="center small" style={{ height: 320 }}>
-                Enable plan heatmap and keep N×M small.
+            {(run === "solving" || result) && (
+              <div className="studio-text-caption">
+                {run === "solving"
+                  ? "Running solver..."
+                  : result
+                  ? `Dual error: ${(hist.at(-1) ?? 0).toExponential(2)}`
+                  : ""}
               </div>
             )}
           </div>
-          <div className="canvasWrap">
-            <div className="kpi">
-              <div>
-                ε: <strong>{epsilon.toFixed(3)}</strong>
-              </div>
-              <div>
-                iter: <strong>{hist.length}</strong>
-              </div>
-              <div>
-                err: <strong>{(hist.at(-1) ?? 0).toExponential(2)}</strong>
-              </div>
-              <div>
-                targets: <strong>{targets.length}</strong>
-              </div>
-              <div>{useLog ? "log‑domain" : "linear"}</div>
+        </div>
+
+        {/* Convergence Plot */}
+        <div className="studio-section">
+          <div className="studio-section-header">
+            <h3 className="studio-text-heading">Convergence</h3>
+          </div>
+          <ConvergencePlot history={hist} />
+        </div>
+
+        {/* Export */}
+        <div className="studio-section">
+          <div className="studio-section-header">
+            <h3 className="studio-text-heading">Export</h3>
+          </div>
+          <Exporter renderFrame={renderFrame} />
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="studio-main">
+        {/* Workspace Grid */}
+        <div className="studio-workspace">
+          {/* Source Canvas */}
+          <div className="studio-canvas">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="studio-text-subheading">Source</h4>
+              <div className="studio-badge">N = {left.w.length}</div>
             </div>
-            <div className="caption">
-              Multi‑target blend: compute T_k to each target, then T = Σ w_k
-              T_k.
+            <div className="studio-canvas-content">
+              <PointCanvas
+                title="Source"
+                points={left.X}
+                weights={left.w}
+                color="#7dd3fc"
+              />
+              <div className="studio-text-caption mt-4 text-center">
+                Left distribution
+              </div>
+            </div>
+          </div>
+
+          {/* Interpolated Canvas */}
+          <div className="studio-canvas">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="studio-text-subheading">Interpolated</h4>
+              <div className="studio-badge studio-badge--success">
+                {result ? "Active" : "Idle"}
+              </div>
+            </div>
+            <div className="studio-canvas-content">
+              <PointCanvas
+                title="Interpolated"
+                points={result ? interp ?? left.X : left.X}
+                weights={left.w}
+                color="#bbf7d0"
+              />
+              <div className="studio-text-caption mt-4 text-center mb-4">
+                Displacement interpolation: (1−t)·X + t·T_blend(X)
+              </div>
+
+              {/* Animation Controls */}
+              <div className="w-full">
+                <div className="studio-control-panel" style={{
+                  margin: '0',
+                  padding: 'var(--studio-space-sm)',
+                  background: 'var(--studio-surface-elevated)',
+                  width: '100%',
+                  maxWidth: '450px'
+                }}>
+                  <div className="studio-play-controls">
+                    <button
+                      className="studio-icon-button"
+                      onClick={() => setT(0)}
+                      disabled={!result}
+                    >
+                      <i data-lucide="skip-back" className="w-4 h-4"></i>
+                    </button>
+                    <button
+                      className={`studio-icon-button ${anim ? "active" : ""}`}
+                      disabled={!result}
+                      onClick={() => setAnim((a) => !a)}
+                    >
+                      <i data-lucide={anim ? "pause" : "play"} className="w-4 h-4"></i>
+                    </button>
+                    <button
+                      className="studio-icon-button"
+                      onClick={() => setT(1)}
+                      disabled={!result}
+                    >
+                      <i data-lucide="skip-forward" className="w-4 h-4"></i>
+                    </button>
+                  </div>
+
+                  <div className="studio-timeline">
+                    <span className="studio-text-mono text-sm">t:</span>
+                    <input
+                      className="studio-range flex-1"
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={t}
+                      onChange={(e) => setT(parseFloat(e.target.value))}
+                      disabled={!result}
+                    />
+                    <span className="studio-text-mono text-sm">{t.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Plan Heatmap */}
+          <div className="studio-canvas">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="studio-text-subheading">Plan Heatmap</h4>
+              <div className="studio-badge studio-badge--warning">
+                {planShape ? `${planShape[0]}×${planShape[1]}` : "Disabled"}
+              </div>
+            </div>
+            <div className="studio-canvas-content">
+              {computePlan && plan && planShape ? (
+                <>
+                  <PlanHeatmap P={plan} N={planShape[0]} M={planShape[1]} />
+                  <div className="studio-text-caption mt-4 text-center">
+                    Transport Matrix ({planShape[0]}×{planShape[1]})
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center" style={{ height: '400px' }}>
+                  <i data-lucide="grid-3x3" className="w-16 h-16 text-gray-500 mb-4"></i>
+                  <div className="studio-text-caption text-center">
+                    Enable plan heatmap and keep N×M small
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* KPI Dashboard */}
+          <div className="studio-canvas">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="studio-text-subheading">Metrics</h4>
+              <div className="studio-status-indicator">
+                <div className="studio-status-dot"></div>
+                {run === "solving" ? "Solving" : result ? "Solved" : "Ready"}
+              </div>
+            </div>
+            <div className="studio-kpi-grid w-full max-w-lg">
+              <div className="studio-kpi-card">
+                <span className="studio-kpi-value">{epsilon.toFixed(3)}</span>
+                <div className="studio-kpi-label">ε</div>
+              </div>
+              <div className="studio-kpi-card">
+                <span className="studio-kpi-value">{hist.length}</span>
+                <div className="studio-kpi-label">iter</div>
+              </div>
+              <div className="studio-kpi-card">
+                <span className="studio-kpi-value">
+                  {(hist.at(-1) ?? 0).toExponential(1)}
+                </span>
+                <div className="studio-kpi-label">error</div>
+              </div>
+              <div className="studio-kpi-card">
+                <span className="studio-kpi-value">{targets.length}</span>
+                <div className="studio-kpi-label">targets</div>
+              </div>
+              <div className="studio-kpi-card">
+                <span className="studio-kpi-value">
+                  {useLog ? "LOG" : "LIN"}
+                </span>
+                <div className="studio-kpi-label">domain</div>
+              </div>
+              <div className="studio-kpi-card">
+                <span className="studio-kpi-value">
+                  {useGPU ? "GPU" : "CPU"}
+                </span>
+                <div className="studio-kpi-label">compute</div>
+              </div>
+            </div>
+            <div className="studio-text-caption mt-4 text-center">
+              Multi‑target blend: compute T_k to each target, then T = Σ w_k T_k
             </div>
           </div>
         </div>
       </main>
 
-      <footer className="footer small">
-        <span>
-          © OTS — entropic OT (Sinkhorn) with multi-target blend, plan heatmap,
-          WebGPU path, drawing, URL sharing, and GIF/MP4 export.
-        </span>
-      </footer>
+      {/* Status Bar */}
+      <div className="studio-status">
+        <div className="flex items-center space-x-4">
+          <div className="studio-status-indicator">
+            <div className="studio-status-dot"></div>
+            {run === "solving" ? "Solving" : result ? "Ready" : "Ready"}
+          </div>
+          <span className="studio-text-caption">N: {left.w.length} points</span>
+          <span className="studio-text-caption">Targets: {targets.length}</span>
+          {result && (
+            <span className="studio-text-caption">
+              Last error: {(hist.at(-1) ?? 0).toExponential(2)}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center space-x-4">
+          <div
+            className={`studio-badge ${
+              gpuOK ? "studio-badge--success" : "studio-badge--warning"
+            }`}
+          >
+            <i data-lucide="zap" className="w-3 h-3"></i>
+            {gpuOK ? "GPU Available" : "CPU Only"}
+          </div>
+          <span className="studio-text-caption studio-text-mono">OTS v0.2.0</span>
+        </div>
+      </div>
     </div>
   );
 }

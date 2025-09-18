@@ -111,48 +111,77 @@ export function Exporter({
   };
 
   return (
-    <div className="card">
-      <h4>Export animation</h4>
-      <div className="row">
-        <label>Duration (s)</label>
-        <input
-          className="input"
-          type="number"
-          value={duration}
-          min={1}
-          max={20}
-          step={1}
-          onChange={(e) => setDuration(parseInt(e.target.value))}
-        />
-        <label>FPS</label>
-        <input
-          className="input"
-          type="number"
-          value={fps}
-          min={5}
-          max={60}
-          step={1}
-          onChange={(e) => setFps(parseInt(e.target.value))}
-        />
-        <label>Format</label>
-        <select
-          className="input"
-          value={format}
-          onChange={(e) => setFormat(e.target.value as any)}
+    <div>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          className="studio-button studio-button--secondary"
+          disabled={busy}
+          onClick={() => {
+            setFormat("gif");
+            exportVideo();
+          }}
         >
-          <option value="mp4">MP4</option>
-          <option value="gif">GIF</option>
-        </select>
-      </div>
-      <div className="row">
-        <button className="btn primary" disabled={busy} onClick={exportVideo}>
-          Export
+          <i data-lucide="image" className="w-4 h-4"></i>
+          GIF
         </button>
-        <span className="small">{status}</span>
+        <button
+          className="studio-button studio-button--secondary"
+          disabled={busy}
+          onClick={() => {
+            setFormat("mp4");
+            exportVideo();
+          }}
+        >
+          <i data-lucide="video" className="w-4 h-4"></i>
+          MP4
+        </button>
       </div>
-      <div className="small">
-        Note: first run will download the FFmpeg core in-browser.
+
+      <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
+        <div className="studio-form-group">
+          <label className="studio-form-label">FPS</label>
+          <input
+            className="studio-input text-xs"
+            type="number"
+            value={fps}
+            min={5}
+            max={60}
+            step={1}
+            onChange={(e) => setFps(parseInt(e.target.value))}
+          />
+        </div>
+        <div className="studio-form-group">
+          <label className="studio-form-label">Duration</label>
+          <input
+            className="studio-input text-xs"
+            type="number"
+            value={duration}
+            min={1}
+            max={20}
+            step={1}
+            onChange={(e) => setDuration(parseInt(e.target.value))}
+          />
+        </div>
       </div>
+
+      {status && (
+        <div className="studio-text-caption mt-2">
+          {busy ? (
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 border-2 border-gray-400 border-t-blue-400 rounded-full animate-spin"></div>
+              {status}
+            </div>
+          ) : (
+            status
+          )}
+        </div>
+      )}
+
+      {!loaded && (
+        <div className="studio-text-caption mt-2">
+          Note: first run will download FFmpeg core in-browser.
+        </div>
+      )}
     </div>
   );
 }

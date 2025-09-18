@@ -12,23 +12,26 @@ export function PlanHeatmap({
   const ref = useRef<HTMLCanvasElement>(null);
   const [robust, setRobust] = useState(true);
   useEffect(() => {
-    const W = 320,
-      H = 320,
-      dpr = Math.min(2, window.devicePixelRatio || 1);
     const cvs = ref.current!;
+    const container = cvs.parentElement?.parentElement;
+    const containerWidth = container?.clientWidth || 800;
+    const maxSize = Math.min(containerWidth - 40, 600);
+    const W = maxSize,
+      H = maxSize,
+      dpr = Math.min(2, window.devicePixelRatio || 1);
     cvs.width = W * dpr;
     cvs.height = H * dpr;
     cvs.style.width = W + "px";
     cvs.style.height = H + "px";
+    cvs.style.display = "block";
+    cvs.style.margin = "0 auto";
+    cvs.style.borderRadius = "0.5rem";
     const ctx = cvs.getContext("2d")!;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = "#0b0e14";
+    ctx.fillStyle = "oklch(0.0800 0.0040 240)"; // var(--studio-bg)
     ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = "#1f2937";
+    ctx.strokeStyle = "oklch(0.2000 0.0160 240)"; // var(--studio-border)
     ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
-    ctx.fillStyle = "#9ca3af";
-    ctx.font = "12px ui-sans-serif";
-    ctx.fillText("Plan heatmap (rows=source, cols=target)", 8, 18);
 
     if (!P) {
       ctx.fillText("n/a", 8, 36);
@@ -74,7 +77,8 @@ export function PlanHeatmap({
       ];
       let k = 0;
       while (k + 1 < stops.length && t > stops[k + 1][0]) k++;
-      const a = stops[k], b = stops[Math.min(k + 1, stops.length - 1)];
+      const a = stops[k],
+        b = stops[Math.min(k + 1, stops.length - 1)];
       const span = Math.max(1e-6, b[0] - a[0]);
       const tt = Math.max(0, Math.min(1, (t - a[0]) / span));
       return [
@@ -115,7 +119,7 @@ export function PlanHeatmap({
     ctx.fillText("high", barX + barW + 4, 30 + 10);
   }, [P, N, M, robust]);
   return (
-    <div>
+    <div className="w-full flex flex-col items-center">
       <canvas
         ref={ref}
         title={
@@ -124,18 +128,22 @@ export function PlanHeatmap({
             : "Plan heatmap: values scaled to global max; cividis-like colormap"
         }
       />
-      <div className="row small" style={{ marginTop: 6 }}>
-        <label>
+      <div className="mt-4 flex items-center space-x-2">
+        <label className="flex items-center space-x-2">
           <input
             type="checkbox"
+            className="rounded border-gray-600"
             checked={robust}
             onChange={(e) => setRobust(e.target.checked)}
-          />{" "}
-          Robust contrast (99th percentile)
+          />
+          <span className="studio-text-caption">
+            Robust contrast (99th percentile)
+          </span>
         </label>
       </div>
       <div className="small">
-        Colormap: cividis‑like. Colorbar shows low → high mass. {robust
+        Colormap: cividis‑like. Colorbar shows low → high mass.{" "}
+        {robust
           ? "Clipped to 99th percentile for contrast."
           : "Scaled to global maximum."}
       </div>
